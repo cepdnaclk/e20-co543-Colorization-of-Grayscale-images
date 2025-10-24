@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Image Colorizer</title>
+    
+    <!-- Tailwind CSS for Modern UI -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" rel="stylesheet">
+
+    <style>
+        body {
+            background: linear-gradient(to right, #ece9e6, #ffffff);
+            font-family: 'Poppins', sans-serif;
+        }
+        .drop-zone {
+            border: 2px dashed #bbb;
+            padding: 20px;
+            text-align: center;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease-in-out;
+        }
+        .drop-zone:hover {
+            border-color: #4a90e2;
+            background-color: rgba(74, 144, 226, 0.1);
+        }
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body class="flex items-center justify-center min-h-screen">
+
+    <div class="w-full max-w-md bg-white p-6 rounded-2xl shadow-xl text-center">
+        <h2 class="text-2xl font-bold text-gray-800">AI Image Colorizer</h2>
+        <p class="text-sm text-gray-500 mt-2">Upload a black & white image and get a colorized version using AI.</p>
+
+        <!-- Drag & Drop Box -->
+        <div id="dropZone" class="drop-zone mt-4">
+            <p class="text-gray-500">Drag & Drop your image here</p>
+            <p class="text-gray-400 text-sm">or click to select</p>
+            <input type="file" id="imageInput" name="image" class="hidden" accept="image/*">
+        </div>
+
+        <button id="uploadBtn" class="mt-4 w-full bg-blue-600 text-white py-2 rounded-lg shadow-md hover:bg-blue-700 transition">
+            <i class="fas fa-upload"></i> Upload & Colorize
+        </button>
+
+        <!-- Loading Spinner -->
+        <div id="loading" class="hidden mt-3 text-blue-600">
+            <i class="fas fa-spinner fa-spin text-3xl"></i>
+            <p class="text-sm text-gray-500">Processing...</p>
+        </div>
+
+        <!-- Colorized Image Preview -->
+        <div id="previewContainer" class="hidden mt-4">
+            <h3 class="text-lg font-semibold text-gray-700">Colorized Image</h3>
+            <img id="colorizedImage" class="rounded-lg shadow-lg mt-2 max-w-full h-auto" alt="Colorized Preview">
+            <button id="downloadBtn" class="mt-3 w-full bg-green-500 text-white py-2 rounded-lg hover:bg-green-600 transition hidden">
+                <i class="fas fa-download"></i> Download Image
+            </button>
+        </div>
+    </div>
+
+    <script>
+        const BACKEND_URL = 'http://127.0.0.1:5000/colorize';
+        const dropZone = document.getElementById('dropZone');
+        const imageInput = document.getElementById('imageInput');
+        const uploadBtn = document.getElementById('uploadBtn');
+        const colorizedImage = document.getElementById('colorizedImage');
+        const downloadBtn = document.getElementById('downloadBtn');
+        const previewContainer = document.getElementById('previewContainer');
+        const loading = document.getElementById('loading');
+
+        // Handle Drag & Drop
+        dropZone.addEventListener('click', () => imageInput.click());
+        dropZone.addEventListener('dragover', (event) => {
+            event.preventDefault();
+            dropZone.classList.add('bg-gray-200');
+        });
+        dropZone.addEventListener('dragleave', () => dropZone.classList.remove('bg-gray-200'));
+        dropZone.addEventListener('drop', (event) => {
+            event.preventDefault();
+            dropZone.classList.remove('bg-gray-200');
+            if (event.dataTransfer.files.length) {
+                imageInput.files = event.dataTransfer.files;
+            }
+        });
+
+        // Handle Upload Button
+        uploadBtn.addEventListener('click', async () => {
+            if (!imageInput.files.length) {
+                alert("Please select an image first.");
+                return;
+            }
+
+            loading.classList.remove('hidden');
+            previewContainer.classList.add('hidden');
+            downloadBtn.classList.add('hidden');
+
+            const formData = new FormData();
+            formData.append('image', imageInput.files[0]);
+
+            try {
+                const response = await fetch(BACKEND_URL, { method: 'POST', body: formData });
+
+                if (response.ok) {
+                    const blob = await response.blob();
+                    const imageUrl = URL.createObjectURL(blob);
+                    colorizedImage.src = imageUrl;
+
+                    previewContainer.classList.remove('hidden');
+                    downloadBtn.classList.remove('hidden');
+
+                    // Enable download functionality
+                    downloadBtn.addEventListener('click', () => {
+                        const link = document.createElement('a');
+                        link.href = imageUrl;
+                        link.download = 'colorized_image.jpg';
+                        link.click();
+                    });
+                } else {
+                    alert("Error: Unable to process the image.");
+                }
+            } catch (error) {
+                console.error('Upload Error:', error);
+                alert("An error occurred. Please try again.");
+            } finally {
+                loading.classList.add('hidden');
+            }
+        });
+    </script>
+
+</body>
+</html>
